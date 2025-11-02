@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冰与火之歌 - AI角色扮演游戏</title>
+    <style>
+        :root {
+            --color-bg: #1a1612;
+            --color-surface: #2a2318;
+            --color-border: #4a3f2f;
+            --color-text: #e8dcc8;
+            --color-text-secondary: #b8a888;
+            --color-primary: #8b7355;
+            --color-primary-hover: #a08665;
+            --color-danger: #8b3a3a;
+            --color-success: #4a7c59;
+            --font-family: 'Georgia', 'SimSun', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .sidebar {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--color-primary);
+            border-bottom: 2px solid var(--color-border);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .character-info {
+            background: rgba(139, 115, 85, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: var(--color-text-secondary);
+            font-weight: bold;
+        }
+
+        .info-value {
+            color: var(--color-text);
+            text-align: right;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .status-good { border-left: 3px solid var(--color-success); }
+        .status-medium { border-left: 3px solid var(--color-primary); }
+        .status-bad { border-left: 3px solid var(--color-danger); }
+
+        .game-display {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            height: calc(100vh - 240px);
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .story-entry {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .story-entry.player {
+            border-left-color: var(--color-success);
+            background: rgba(74, 124, 89, 0.1);
+        }
+
+        .story-timestamp {
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-area {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        #playerInput {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 12px;
+            color: var(--color-text);
+            font-family: var(--font-family);
+            font-size: 14px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        #playerInput:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        button {
+            background: var(--color-primary);
+            color: var(--color-text);
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-family: var(--font-family);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 8px;
+            color: var(--color-text);
+            font-family: var(--font-family);
+            font-size: 14px;
+            width: 100%;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            color: var(--color-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--color-text-secondary);
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--color-text-secondary);
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .error {
+            background: rgba(139, 58, 58, 0.2);
+            border: 1px solid var(--color-danger);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            color: #ff8888;
+        }
+
+        .save-list {
+            list-style: none;
+        }
+
+        .save-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .save-item:hover {
+            background: rgba(139, 115, 85, 0.2);
+            border-color: var(--color-primary);
+        }
+
+        .save-item-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .save-item-date {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .game-display {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <section>
+                <h2 class="section-title">角色信息</h2>
+                <div class="character-info">
+                    <div class="info-row">
+                        <span class="info-label">姓名：</span>
+                        <span class="info-value" id="charName">未创建</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">身份：</span>
+                        <span class="info-value" id="charIdentity">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">年龄：</span>
+                        <span class="info-value" id="charAge">0岁</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">地点：</span>
+                        <span class="info-value" id="charLocation">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="section-title">状态</h2>
+                <div class="status-grid">
+                    <div class="status-item status-good" id="healthStatus">
+                        <div class="info-label">身体</div>
+                        <div id="healthValue">健康</div>
+                    </div>
+                    <div class="status-item status-good" id="mentalStatus">
+                        <div class="info-label">精神</div>
+                        <div id="mentalValue">平静</div>
+                    </div>
+                    <div class="status-item status-medium" id="hungerStatus">
+                        <div class="info-label">饥饿</div>
+                        <div id="hungerValue">饱足</div>
+                    </div>
+                    <div class="status-item status-medium" id="fatigueStatus">
+                        <div class="info-label">疲劳</div>
+                        <div id="fatigueValue">精力充沛</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="section-title">资产</h2>
+                <div class="character-info">
+                    <div class="info-row">
+                        <span class="info-label">金龙：</span>
+                        <span class="info-value" id="goldDragons">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">银鹿：</span>
+                        <span class="info-value" id="silverStags">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">铜星：</span>
+                        <span class="info-value" id="copperStars">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="section-title">AI模型</h2>
+                <select id="modelSelect">
+                    <option value="">正在扫描...</option>
+                </select>
+            </section>
+
+            <section>
+                <div class="controls">
+                    <button onclick="saveGame()">保存游戏</button>
+                    <button onclick="loadGame()">读取存档</button>
+                    <button onclick="newGame()">新游戏</button>
+                </div>
+            </section>
+        </aside>
+
+        <main class="main-content">
+            <div class="game-display" id="gameDisplay">
+                <div class="loading">欢迎来到冰与火之歌的世界。请选择AI模型并开始新游戏。</div>
+            </div>
+
+            <div class="input-area">
+                <textarea id="playerInput" placeholder="输入你的行动或对话...按Enter发送，Shift+Enter换行"></textarea>
+                <button onclick="sendAction()" id="sendBtn">行动</button>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal" id="loadModal">
+        <div class="modal-content">
+            <h2 class="modal-title">读取存档</h2>
+            <ul class="save-list" id="saveList"></ul>
+            <button onclick="closeModal()" style="width: 100%; margin-top: 10px;">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            character: {
+                name: '',
+                identity: '',
+                age: 0,
+                location: '',
+                health: '健康',
+                mental: '平静',
+                hunger: '饱足',
+                fatigue: '精力充沛',
+                goldDragons: 0,
+                silverStags: 0,
+                copperStars: 0
+            },
+            storyLog: [],
+            currentModel: '',
+            gameStarted: false
+        };
+
+        // AI提示词模板
+        const SYSTEM_PROMPT = `你是《冰与火之歌》世界的游戏主持人。当前时间线：劳勃·拜拉席恩国王刚刚赦免了巴利斯坦·赛尔弥爵士。
+
+核心规则：
+1. 严格遵循乔治·R·R·马丁的世界观，保持中世纪真实感
+2. 不要使用任何游戏化数值（HP、MP等），用真实的身体描述
+3. 根据玩家行动合理更新角色状态：
+   - 身体状态：健康/疲惫/轻伤/重伤/濒死
+   - 精神状态：平静/紧张/恐惧/愤怒/绝望
+   - 饥饿：饱足/有些饿/饥饿/极度饥饿
+   - 疲劳：精力充沛/有些累/疲惫/筋疲力尽
+4. 财产变化要合理（1金龙=210银鹿=11760铜星）
+5. 行动有真实后果，可能受伤或死亡
+6. 每次回复格式：
+
+[故事内容]
+描述世界的反应、NPC对话、环境变化...
+
+[状态更新]
+身体: [当前状态]
+精神: [当前状态]
+饥饿: [当前状态]
+疲劳: [当前状态]
+金龙: [数量]
+银鹿: [数量]
+铜星: [数量]
+地点: [当前位置]
+
+当前角色：{character}
+当前情况：{context}`;
+
+        // 页面加载时扫描AI模型
+        window.onload = function() {
+            scanModels();
+        };
+
+        // 扫描本地Ollama模型
+        async function scanModels() {
+            try {
+                const response = await fetch('http://localhost:11434/api/tags');
+                const data = await response.json();
+                
+                const modelSelect = document.getElementById('modelSelect');
+                modelSelect.innerHTML = '';
+                
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name;
+                        modelSelect.appendChild(option);
+                    });
+                    gameState.currentModel = data.models[0].name;
+                } else {
+                    modelSelect.innerHTML = '<option value="">未找到模型</option>';
+                }
+            } catch (error) {
+                console.error('扫描模型失败:', error);
+                document.getElementById('modelSelect').innerHTML = '<option value="">连接Ollama失败</option>';
+            }
+        }
+
+        // 更新模型选择
+        document.getElementById('modelSelect').addEventListener('change', function(e) {
+            gameState.currentModel = e.target.value;
+        });
+
+        // 新游戏
+        async function newGame() {
+            if (!gameState.currentModel) {
+                alert('请先选择AI模型！');
+                return;
+            }
+
+            document.getElementById('gameDisplay').innerHTML = '<div class="loading">AI正在为你创建角色...</div>';
+            
+            const createPrompt = `作为游戏主持人，为玩家创建一个《冰与火之歌》世界的角色。时间：劳勃·拜拉席恩国王刚刚赦免巴利斯坦的这一天，玩家角色刚刚出生。
+
+随机选择一个有趣的身份（可以是：史塔克家族成员、私生子、自由贸易城邦居民、骑士家族、平民等）。
+
+请按以下格式回复：
+[角色创建]
+姓名: [角色姓名]
+身份: [详细身份描述]
+地点: [出生地点]
+金龙: [初始金龙数量]
+银鹿: [初始银鹿数量]
+铜星: [初始铜星数量]
+
+[开场故事]
+描述角色出生的场景，家族背景，以及这个世界的初印象...
+
+[状态更新]
+身体: 健康
+精神: 平静
+饥饿: 饱足
+疲劳: 精力充沛`;
+
+            try {
+                const aiResponse = await callOllama(createPrompt, '');
+                parseAIResponse(aiResponse, true);
+                gameState.gameStarted = true;
+            } catch (error) {
+                document.getElementById('gameDisplay').innerHTML = `<div class="error">创建角色失败：${error.message}</div>`;
+            }
+        }
+
+        // 发送玩家行动
+        async function sendAction() {
+            if (!gameState.gameStarted) {
+                alert('请先开始新游戏！');
+                return;
+            }
+
+            const input = document.getElementById('playerInput');
+            const action = input.value.trim();
+            
+            if (!action) return;
+
+            // 显示玩家行动
+            addStoryEntry(action, true);
+            input.value = '';
+            
+            // 禁用输入
+            document.getElementById('sendBtn').disabled = true;
+            input.disabled = true;
+
+            // 构建上下文
+            const context = gameState.storyLog.slice(-5).map(entry => entry.text).join('\n\n');
+            const characterInfo = JSON.stringify(gameState.character);
+            
+            const prompt = SYSTEM_PROMPT
+                .replace('{character}', characterInfo)
+                .replace('{context}', context) + `\n\n玩家行动：${action}`;
+
+            try {
+                const aiResponse = await callOllama(prompt, context);
+                parseAIResponse(aiResponse, false);
+            } catch (error) {
+                addStoryEntry(`[系统错误：${error.message}]`, false);
+            } finally {
+                document.getElementById('sendBtn').disabled = false;
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        // 调用Ollama API
+        async function callOllama(prompt, context) {
+            const response = await fetch('http://localhost:11434/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: gameState.currentModel,
+                    prompt: prompt,
+                    stream: false,
+                    options: {
+                        temperature: 0.8,
+                        top_p: 0.9
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('AI响应失败');
+            }
+
+            const data = await response.json();
+            return data.response;
+        }
+
+        // 解析AI回应
+        function parseAIResponse(response, isCreation) {
+            let storyText = response;
+            
+            // 提取并更新状态
+            const statusMatch = response.match(/\[状态更新\]([\s\S]*?)(?:\n\n|$)/);
+            if (statusMatch) {
+                const statusText = statusMatch[1];
+                updateGameState(statusText);
+                storyText = response.replace(/\[状态更新\][\s\S]*$/, '').trim();
+            }
+
+            // 角色创建
+            if (isCreation) {
+                const nameMatch = response.match(/姓名[：:]\s*(.+)/);
+                const identityMatch = response.match(/身份[：:]\s*(.+)/);
+                const locationMatch = response.match(/地点[：:]\s*(.+)/);
+                
+                if (nameMatch) gameState.character.name = nameMatch[1].trim();
+                if (identityMatch) gameState.character.identity = identityMatch[1].trim();
+                if (locationMatch) gameState.character.location = locationMatch[1].trim();
+                
+                gameState.character.age = 0;
+                
+                updateUI();
+            }
+
+            // 显示故事文本
+            addStoryEntry(storyText, false);
+        }
+
+        // 更新游戏状态
+        function updateGameState(statusText) {
+            const updates = {
+                '身体': 'health',
+                '精神': 'mental',
+                '饥饿': 'hunger',
+                '疲劳': 'fatigue',
+                '金龙': 'goldDragons',
+                '银鹿': 'silverStags',
+                '铜星': 'copperStars',
+                '地点': 'location'
+            };
+
+            for (const [key, prop] of Object.entries(updates)) {
+                const regex = new RegExp(`${key}[：:]\\s*(.+)`);
+                const match = statusText.match(regex);
+                if (match) {
+                    const value = match[1].trim();
+                    gameState.character[prop] = isNaN(value) ? value : parseInt(value);
+                }
+            }
+
+            updateUI();
+        }
+
+        // 更新UI显示
+        function updateUI() {
+            const char = gameState.character;
+            
+            document.getElementById('charName').textContent = char.name || '未知';
+            document.getElementById('charIdentity').textContent = char.identity || '-';
+            document.getElementById('charAge').textContent = `${char.age}岁`;
+            document.getElementById('charLocation').textContent = char.location || '-';
+            
+            document.getElementById('healthValue').textContent = char.health;
+            document.getElementById('mentalValue').textContent = char.mental;
+            document.getElementById('hungerValue').textContent = char.hunger;
+            document.getElementById('fatigueValue').textContent = char.fatigue;
+            
+            // 更新状态颜色
+            updateStatusColor('healthStatus', char.health, ['健康', '疲惫', '轻伤']);
+            updateStatusColor('mentalStatus', char.mental, ['平静', '紧张', '愤怒']);
+            updateStatusColor('hungerStatus', char.hunger, ['饱足', '有些饿']);
+            updateStatusColor('fatigueStatus', char.fatigue, ['精力充沛', '有些累']);
+            
+            document.getElementById('goldDragons').textContent = char.goldDragons;
+            document.getElementById('silverStags').textContent = char.silverStags;
+            document.getElementById('copperStars').textContent = char.copperStars;
+        }
+
+        // 更新状态颜色
+        function updateStatusColor(elementId, value, goodStates) {
+            const element = document.getElementById(elementId);
+            element.className = 'status-item';
+            
+            if (goodStates.includes(value)) {
+                element.classList.add('status-good');
+            } else if (value.includes('极度') || value.includes('濒死') || value.includes('绝望')) {
+                element.classList.add('status-bad');
+            } else {
+                element.classList.add('status-medium');
+            }
+        }
+
+        // 添加故事条目
+        function addStoryEntry(text, isPlayer) {
+            const entry = {
+                text: text,
+                isPlayer: isPlayer,
+                timestamp: new Date().toLocaleString('zh-CN')
+            };
+            
+            gameState.storyLog.push(entry);
+            
+            const display = document.getElementById('gameDisplay');
+            const entryDiv = document.createElement('div');
+            entryDiv.className = `story-entry ${isPlayer ? 'player' : ''}`;
+            entryDiv.innerHTML = `
+                <div class="story-timestamp">${entry.timestamp} ${isPlayer ? '[你的行动]' : '[世界回应]'}</div>
+                <div>${text.replace(/\n/g, '<br>')}</div>
+            `;
+            
+            display.appendChild(entryDiv);
+            display.scrollTop = display.scrollHeight;
+        }
+
+        // 保存游戏
+        function saveGame() {
+            if (!gameState.gameStarted) {
+                alert('还没有开始游戏！');
+                return;
+            }
+
+            const saveName = prompt('请输入存档名称：', `${gameState.character.name}_${new Date().toLocaleDateString()}`);
+            if (!saveName) return;
+
+            const saveData = {
+                name: saveName,
+                date: new Date().toISOString(),
+                state: JSON.parse(JSON.stringify(gameState))
+            };
+
+            const saves = JSON.parse(localStorage.getItem('asoiafSaves') || '[]');
+            saves.push(saveData);
+            localStorage.setItem('asoiafSaves', JSON.stringify(saves));
+
+            alert('游戏已保存！');
+        }
+
+        // 读取存档
+        function loadGame() {
+            const saves = JSON.parse(localStorage.getItem('asoiafSaves') || '[]');
+            
+            if (saves.length === 0) {
+                alert('没有找到存档！');
+                return;
+            }
+
+            const saveList = document.getElementById('saveList');
+            saveList.innerHTML = '';
+
+            saves.forEach((save, index) => {
+                const li = document.createElement('li');
+                li.className = 'save-item';
+                li.innerHTML = `
+                    <div class="save-item-name">${save.name}</div>
+                    <div class="save-item-date">${new Date(save.date).toLocaleString('zh-CN')}</div>
+                `;
+                li.onclick = () => {
+                    gameState = JSON.parse(JSON.stringify(save.state));
+                    updateUI();
+                    
+                    // 重新显示故事
+                    const display = document.getElementById('gameDisplay');
+                    display.innerHTML = '';
+                    gameState.storyLog.forEach(entry => {
+                        const entryDiv = document.createElement('div');
+                        entryDiv.className = `story-entry ${entry.isPlayer ? 'player' : ''}`;
+                        entryDiv.innerHTML = `
+                            <div class="story-timestamp">${entry.timestamp} ${entry.isPlayer ? '[你的行动]' : '[世界回应]'}</div>
+                            <div>${entry.text.replace(/\n/g, '<br>')}</div>
+                        `;
+                        display.appendChild(entryDiv);
+                    });
+                    
+                    closeModal();
+                    alert('存档已读取！');
+                };
+                saveList.appendChild(li);
+            });
+
+            document.getElementById('loadModal').style.display = 'flex';
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('loadModal').style.display = 'none';
+        }
+
+        // 快捷键支持
+        document.getElementById('playerInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAction();
+            }
+        });
+    </script>
+</body>
+</html>
